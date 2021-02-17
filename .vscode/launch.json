@@ -8,7 +8,7 @@
             "name": "Blue (example)",
             "request": "launch",
             "type": "dart",
-            "program": "example/blue/lib/main.dart"
+            "program": "example/print_bluetooth_termal/lib/main.dart"
         }
     ]
 }
