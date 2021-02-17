@@ -71,7 +71,6 @@ class _MyHomePageState extends State<MyHomePage> {
     final generator = Generator(PaperSize.mm80, profile);
     List<int> ticket = [];
 
-
     // Print image
     final ByteData data = await rootBundle.load('assets/rabbit_black.jpg');
     final Uint8List bytes = data.buffer.asUint8List();
@@ -88,9 +87,12 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         linesAfter: 1);
 
-    ticket += generator.text('889  Watson Lane', styles: PosStyles(align: PosAlign.center));
-    ticket += generator.text('New Braunfels, TX', styles: PosStyles(align: PosAlign.center));
-    ticket += generator.text('Tel: 830-221-1234', styles: PosStyles(align: PosAlign.center));
+    ticket += generator.text('889  Watson Lane',
+        styles: PosStyles(align: PosAlign.center));
+    ticket += generator.text('New Braunfels, TX',
+        styles: PosStyles(align: PosAlign.center));
+    ticket += generator.text('Tel: 830-221-1234',
+        styles: PosStyles(align: PosAlign.center));
     ticket += generator.text('Web: www.example.com',
         styles: PosStyles(align: PosAlign.center), linesAfter: 1);
 
@@ -360,7 +362,6 @@ class _MyHomePageState extends State<MyHomePage> {
     ticket += generator.feed(2);
     ticket += generator.cut();
     return ticket;
-
   }
 
   void _testPrint(PrinterBluetooth printer) async {
@@ -375,7 +376,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // DEMO RECEIPT
     final PosPrintResult res =
-    await printerManager.printTicket(await demoReceipt(paper));
+        await printerManager.printTicket(await demoReceipt(paper));
     showToast(res.msg);
   }
 
@@ -388,7 +389,7 @@ class _MyHomePageState extends State<MyHomePage> {
       body: ListView.builder(
           itemCount: _devices.length,
           itemBuilder: (BuildContext context, int index) {
-            if(_devices[index].name.isNotEmpty || _devices[index].name != ""){
+            if (_devices[index].name.isNotEmpty || _devices[index].name != "") {
               return InkWell(
                 onTap: () => _testPrint(_devices[index]),
                 child: Column(
@@ -426,7 +427,6 @@ class _MyHomePageState extends State<MyHomePage> {
             }
 
             return Container();
-
           }),
       floatingActionButton: StreamBuilder<bool>(
         stream: printerManager.isScanningStream,
