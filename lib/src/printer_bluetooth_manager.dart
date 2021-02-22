@@ -21,7 +21,7 @@ class PrinterBluetooth {
   String _deviceName;
 
   String get deviceName => _deviceName;
-  set deviceName(String val){
+  set deviceName(String val) {
     this._deviceName = val;
   }
 
@@ -58,7 +58,11 @@ class PrinterBluetoothManager {
     _flutterBlue.startScan(timeout: timeout);
 
     _scanResultsSubscription = _flutterBlue.scanResults.listen((devices) {
-      _scanResults.add(devices.map((d) => PrinterBluetooth(d.device)).toList());
+      _scanResults.add(devices
+          .where((d) => d.advertisementData.connectable)
+          .toList()
+          .map((d) => PrinterBluetooth(d.device))
+          .toList());
     });
 
     _isScanningSubscription =
@@ -80,7 +84,7 @@ class PrinterBluetoothManager {
     _selectedPrinter = printer;
   }
 
-  Future<void> disconnect() async{
+  Future<void> disconnect() async {
     await _selectedPrinter._device.disconnect();
     _isPrinting = false;
   }
@@ -102,7 +106,7 @@ class PrinterBluetoothManager {
     } else if (_isPrinting) {
       print(3);
       return Future<PosPrintResult>.value(PosPrintResult.printInProgress);
-    } else{
+    } else {
       completer.complete(PosPrintResult.print);
     }
 
@@ -112,7 +116,7 @@ class PrinterBluetoothManager {
     // We have to rescan before connecting, otherwise we can connect only once
 
     // Connect
-    if(!_isConnected) {
+    if (!_isConnected) {
       await _selectedPrinter._device.connect();
       _isConnected = true;
     }
@@ -124,8 +128,8 @@ class PrinterBluetoothManager {
     }
 
     if (_isConnected) {
-      List<BluetoothService> services = await _selectedPrinter._device
-          .discoverServices();
+      List<BluetoothService> services =
+          await _selectedPrinter._device.discoverServices();
       for (BluetoothService service in services) {
         List<BluetoothCharacteristic> characteristics = service.characteristics;
         for (BluetoothCharacteristic characteristic in characteristics) {
@@ -149,7 +153,6 @@ class PrinterBluetoothManager {
         }
       }
     }
-
 
     /*
     _selectedPrinter._device.state.listen((state)async {
