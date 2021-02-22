@@ -58,7 +58,11 @@ class PrinterBluetoothManager {
     _flutterBlue.startScan(timeout: timeout);
 
     _scanResultsSubscription = _flutterBlue.scanResults.listen((devices) {
-      _scanResults.add(devices.map((d) => PrinterBluetooth(d.device)).toList());
+      _scanResults.add(devices
+          .where((d) => d.advertisementData.connectable)
+          .toList()
+          .map((d) => PrinterBluetooth(d.device))
+          .toList());
     });
 
     _isScanningSubscription =
