@@ -84,10 +84,10 @@ class PrinterBluetoothManager {
     _selectedPrinter = printer;
   }
 
-  Future<void> disconnect() async {
-    await _selectedPrinter._device.disconnect();
-    _isPrinting = false;
-  }
+  // Future<void> disconnect() async {
+  //   await _selectedPrinter._device.disconnect();
+  //   _isPrinting = false;
+  // }
 
   Future<PosPrintResult> writeBytes(
     List<int> bytes, {
@@ -106,129 +106,67 @@ class PrinterBluetoothManager {
     }
 
     _isPrinting = true;
-    bool isFirst = true;
-    bool _isFinish = false;
+    // bool isFirst = true;
+    // bool _isFinish = false;
     // We have to rescan before connecting, otherwise we can connect only once
-
+    await _flutterBlue.startScan(timeout: Duration(seconds: 1));
+    await _flutterBlue.stopScan();
     // Connect
-    if (!_isConnected) {
-      await _selectedPrinter._device.connect();
-      _isConnected = true;
-    }
-    final len = bytes.length;
-    List<List<int>> chunks = [];
-    for (var i = 0; i < len; i += chunkSizeBytes) {
-      var end = (i + chunkSizeBytes < len) ? i + chunkSizeBytes : len;
-      chunks.add(bytes.sublist(i, end));
-    }
+    await _selectedPrinter._device.connect();
 
-    if (_isConnected) {
-      List<BluetoothService> services =
-          await _selectedPrinter._device.discoverServices();
-      for (BluetoothService service in services) {
-        List<BluetoothCharacteristic> characteristics = service.characteristics;
-        for (BluetoothCharacteristic characteristic in characteristics) {
-          if (isFirst) {
-            for (var i = 0; i < chunks.length; i += 1) {
-              try {
-                await characteristic.write(chunks[i], withoutResponse: true);
-                await characteristic.read();
-                isFirst = false;
-                _isFinish = true;
-              } catch (e) {
-                break;
+    // Subscribe to the events
+    _flutterBlue.state.listen((state) async {
+      switch (state) {
+        case BluetoothState.on:
+          // To avoid double call
+          if (!_isConnected) {
+            final len = bytes.length;
+            List<List<int>> chunks = [];
+            // get characteristic method
+            List<BluetoothService> services =
+                await _selectedPrinter._device.discoverServices();
+            for (BluetoothService service in services) {
+              List<BluetoothCharacteristic> characteristics =
+                  service.characteristics;
+              for (BluetoothCharacteristic characteristic in characteristics) {
+                for (var i = 0; i < len; i += chunkSizeBytes) {
+                  var end =
+                      (i + chunkSizeBytes < len) ? i + chunkSizeBytes : len;
+                  chunks.add(bytes.sublist(i, end));
+                }
+
+                for (var i = 0; i < chunks.length; i += 1) {
+                  await characteristic.write(chunks[i]);
+                  sleep(Duration(milliseconds: queueSleepTimeMs));
+                }
+
+                completer.complete(PosPrintResult.success);
               }
             }
-            if (_isFinish) {
-              _isPrinting = false;
-              _isConnected = false;
+            // TODO sending disconnect signal should be event-based
+            _runDelayed(3).then((dynamic v) async {
               await _selectedPrinter._device.disconnect();
-            }
-          }
-        }
-      }
-    }
-
-    /*
-    _selectedPrinter._device.state.listen((state)async {
-      switch(state){
-        case BluetoothDeviceState.connected :
-          final len = bytes.length;
-          List<List<int>> chunks = [];
-          for (var i = 0; i < len; i += chunkSizeBytes) {
-            var end = (i + chunkSizeBytes < len) ? i + chunkSizeBytes : len;
-            chunks.add(bytes.sublist(i, end));
-          }
-
-          if (_isConnected) {
-            List<BluetoothService> services = await _selectedPrinter._device.discoverServices();
-            for(BluetoothService service in services){
-              List<BluetoothCharacteristic> characteristics = service.characteristics;
-              for(BluetoothCharacteristic characteristic in characteristics){
-                if(isFirst){
-                  for (var i = 0; i < chunks.length; i += 1) {
-                    try {
-                      await characteristic.write(chunks[i], withoutResponse: true);
-                      await characteristic.read();
-                      isFirst = false;
-                      _isFinish = true;
-                    } catch (e) {
-                      break;
-                    }
-                  }
-                  if(_isFinish){
-                    _isPrinting = false;
-                    _isConnected = false;
-                    await _selectedPrinter._device.disconnect();
-                  }
-                }
-              }
-
-            }
-
-            /*
-            _selectedPrinter._device.services.listen((event) async {
-              _bluetoothServices = event;
-              for (BluetoothService bluetoothService in _bluetoothServices) {
-
-                List<BluetoothCharacteristic> characteristics = bluetoothService
-                    .characteristics;
-                for (BluetoothCharacteristic characteristic in characteristics) {
-                  if(isFirst){
-                    for (var i = 0; i < chunks.length; i += 1) {
-                      try {
-                        await characteristic.write(chunks[i], withoutResponse: true);
-                        await characteristic.read();
-                        isFirst = false;
-                        _isFinish = true;
-                      } catch (e) {
-                        break;
-                      }
-                    }
-                    if(_isFinish){
-                      _isPrinting = false;
-                      _isConnected = false;
-                      await _selectedPrinter._device.disconnect();
-                    }
-                  }
-                }
-              }
+              _isPrinting = false;
             });
-
-             */
+            _isConnected = true;
           }
-
           break;
-        case BluetoothDeviceState.disconnected :
+        case BluetoothState.off:
           _isConnected = false;
           break;
         default:
           break;
-
       }
     });
 
-     */
+    // Printing timeout
+    _runDelayed(timeout).then((dynamic v) async {
+      if (_isPrinting) {
+        _isPrinting = false;
+        completer.complete(PosPrintResult.timeout);
+      }
+    });
+
     return completer.future;
   }
 
