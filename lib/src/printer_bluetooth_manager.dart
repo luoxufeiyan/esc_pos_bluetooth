@@ -111,9 +111,11 @@ class PrinterBluetoothManager {
     // We have to rescan before connecting, otherwise we can connect only once
     await _flutterBlue.startScan(timeout: Duration(seconds: 1));
     await _flutterBlue.stopScan();
-    // Connect
-    await _selectedPrinter._device.connect();
-
+    // Connect check here!
+    if (!_isConnected) {
+      await _selectedPrinter._device.connect();
+      _isConnected = true;
+    }
     // Subscribe to the events
     _flutterBlue.state.listen((state) async {
       switch (state) {
@@ -136,8 +138,10 @@ class PrinterBluetoothManager {
                 }
 
                 for (var i = 0; i < chunks.length; i += 1) {
-                  await characteristic.write(chunks[i]);
+                  var result = await characteristic.write(chunks[i]);
                   sleep(Duration(milliseconds: queueSleepTimeMs));
+                  print(
+                      "Now print chunks $i, total ${chunks.length}, crrt status: $result");
                 }
 
                 completer.complete(PosPrintResult.success);
